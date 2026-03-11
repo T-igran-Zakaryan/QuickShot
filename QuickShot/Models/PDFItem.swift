@@ -6,7 +6,7 @@
 //
 import Foundation
 
-struct PDFItem: Identifiable {
+struct PDFItem: Identifiable, Hashable {
     let url: URL
     let displayName: String
     let createdAt: Date

@@ -9,9 +9,20 @@ import SwiftUI
 
 @main
 struct QuickShotApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+   @State private var selectedTab = 1
+      var body: some Scene {
+         WindowGroup {
+            TabView(selection: $selectedTab) {
+               Tab("Images", systemImage: "photo", value: 1) {
+                  AssetGridView()
+               }
+               Tab("PDFs", systemImage: "tray.full.fill", value: 2) {
+                  PDFListView()
+               }
+               Tab("Settings", systemImage: "gearshape", value: 3) {
+                  SettingsView()
+               }
+            }
+         }
     }
 }
