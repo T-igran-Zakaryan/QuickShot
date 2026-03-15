@@ -27,6 +27,9 @@ struct AssetGridView: View {
    @State private var selectedAssetOrder: [String] = []
    @State private var isSelectionMode = false
    @State private var isConverting = false
+   @State private var isShowingConversionSheet = false
+   @State private var conversionPageSize: PDFPageSizeOption = .a4
+   @State private var compressionQuality: Double = 0.8
    @State private var didScrollToBottom = false
    private let gridBottomAnchorID = "grid-bottom-anchor"
    
@@ -89,13 +92,22 @@ struct AssetGridView: View {
             PhotoFullScreenView(asset: selection.asset, imageManager: model.imageManager)
                .navigationTransition(.zoom(sourceID: selection.id, in: namespace))
          }
+         .sheet(isPresented: $isShowingConversionSheet) {
+            ConversionSettingsSheet(
+               pageSize: $conversionPageSize,
+               compressionQuality: $compressionQuality,
+               isConverting: $isConverting
+            ) {
+               await convertSelectedAssets()
+            }
+         }
          .navigationTitle("Photos")
          .navigationSubtitle("\(model.assets.count) - elements")
          .toolbarTitleDisplayMode(.inlineLarge)
          .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                Button {
-                  Task { await convertSelectedAssets() }
+                  isShowingConversionSheet = true
                } label: {
                   Image(systemName: "arrow.up.document.fill")
                }
@@ -147,7 +159,7 @@ struct AssetGridView: View {
    @MainActor
    private func convertSelectedAssets() async {
       guard !isConverting else { return }
-      
+
       isConverting = true
       let selectedAssets: [PHAsset]
       if useSelectionOrder {
@@ -158,7 +170,12 @@ struct AssetGridView: View {
          selectedAssets = model.assets.filter { selectedAssetIDs.contains($0.localIdentifier) }
       }
       
-      if let data = await model.pdfData(from: selectedAssets) {
+      let settings = PDFConversionSettings(
+         pageSize: conversionPageSize,
+         compressionQuality: CGFloat(compressionQuality)
+      )
+
+      if let data = await model.pdfData(from: selectedAssets, settings: settings) {
          _ = pdfService.savePDF(data: data)
       }
       
@@ -166,6 +183,7 @@ struct AssetGridView: View {
       selectedAssetIDs.removeAll()
       selectedAssetOrder.removeAll()
       isSelectionMode = false
+      isShowingConversionSheet = false
    }
 
    private func scrollToBottomIfNeeded(using scrollProxy: ScrollViewProxy) {
@@ -186,5 +204,81 @@ struct AssetGridView: View {
 //         .foregroundStyle(.white, isSelected ? .blue : .gray)
          .foregroundColor(isSelected ? .blue : .white)
          .padding(6)
+   }
+}
+
+private struct ConversionSettingsSheet: View {
+   @Binding var pageSize: PDFPageSizeOption
+   @Binding var compressionQuality: Double
+   @Binding var isConverting: Bool
+   let onConvert: () async -> Void
+
+   @Environment(\.dismiss) private var dismiss
+
+   var body: some View {
+      NavigationStack {
+         Form {
+            Section("Size settings") {
+               Picker("Page size", selection: $pageSize) {
+                  ForEach(PDFPageSizeOption.allCases) { option in
+                     Text(title(for: option)).tag(option)
+                  }
+               }
+               .pickerStyle(.inline)
+            }
+
+            Section("Compression") {
+               VStack(spacing: 12) {
+                  Slider(value: $compressionQuality, in: 0.4...1.0, step: 0.05)
+                  HStack {
+                     Text("Smaller file")
+                     Spacer()
+                     Text("Better quality")
+                  }
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+               }
+               Text("Reduce file size while keeping readability.")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+            }
+
+            if isConverting {
+               Section {
+                  HStack(spacing: 12) {
+                     ProgressView()
+                     Text("Converting...")
+                  }
+               }
+            }
+         }
+         .navigationTitle("Conversion Settings")
+         .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+               Button("Cancel") { dismiss() }
+                  .disabled(isConverting)
+            }
+            ToolbarItem(placement: .confirmationAction) {
+               Button("Convert") {
+                  Task {
+                     await onConvert()
+                     dismiss()
+                  }
+               }
+               .disabled(isConverting)
+            }
+         }
+      }
+   }
+
+   private func title(for option: PDFPageSizeOption) -> String {
+      switch option {
+      case .a4:
+         return "A4"
+      case .keepOriginal:
+         return "Keep original size (not recommended)"
+      case .fitAll:
+         return "Fit all images to a compatible size"
+      }
    }
 }

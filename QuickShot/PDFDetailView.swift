@@ -10,18 +10,25 @@ struct PDFDetailView: View {
 
 
    let item: PDFItem
-   
+
    var body: some View {
-//      PDFKitView(
-//         url: item.url,
-//         currentPage: $currentPage,
-//         pageCount: $pageCount,
-//         onScrollStart: showPageIndicator
-//      )
-      PDFKitTestView(url: item.url, currentPage: $currentPage, pageCount: $pageCount)
+      NavigationStack {
+         //      PDFKitView(
+         //         url: item.url,
+         //         currentPage: $currentPage,
+         //         pageCount: $pageCount,
+         //         onScrollStart: showPageIndicator
+         //      )
+         PDFKitTestView(
+            url: item.url,
+            currentPage: $currentPage,
+            pageCount: $pageCount,
+            onScrollStart: showPageIndicator
+         )
          .truncatedNavigationTitle(item.displayName.truncatedMiddle(charLimit: 10))
          .navigationBarTitleDisplayMode(.inline)
-         .ignoresSafeArea(edges: .all)
+         .ignoresSafeArea(.all, edges: .all)
+
          .overlay(alignment: .bottomTrailing) {
             if pageCount > 1 {
                Text("\(currentPage)/\(pageCount)")
@@ -36,12 +43,12 @@ struct PDFDetailView: View {
                   .animation(.easeInOut(duration: 0.25), value: showPageHUD)
             }
          }
-         .toolbarVisibility(.hidden, for: .bottomBar)
+
          .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                  ShareLink(item: item.url) {
-                     Image(systemName: "square.and.arrow.up.fill")
-                  }
+               ShareLink(item: item.url) {
+                  Image(systemName: "square.and.arrow.up.fill")
+               }
             }
             ToolbarItem(placement: .topBarLeading) {
                Button { dismiss() } label: {
@@ -60,22 +67,23 @@ struct PDFDetailView: View {
          }
          .sheet(isPresented: $isSharing) {
             ActivityView(items: [item.url])
-//               .presentationDetents([.height(340), .large])
+            //               .presentationDetents([.height(340), .large])
                .presentationDetents([.large])
                .presentationDragIndicator(.visible)
          }
+      }
    }
-   
+
    private func formattedSize(_ bytes: Int64) -> String {
       AppFormatters.fileSize.string(fromByteCount: bytes)
    }
-   
+
    private func showPageIndicator() {
       hidePageHUDWorkItem?.cancel()
       withAnimation(.easeInOut(duration: 0.25)) {
          showPageHUD = true
       }
-      
+
       let workItem = DispatchWorkItem {
          withAnimation(.easeInOut(duration: 0.25)) {
             showPageHUD = false
@@ -88,10 +96,10 @@ struct PDFDetailView: View {
 
 struct ActivityView: UIViewControllerRepresentable {
    let items: [Any]
-   
+
    func makeUIViewController(context: Context) -> UIActivityViewController {
       UIActivityViewController(activityItems: items, applicationActivities: nil)
    }
-   
+
    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

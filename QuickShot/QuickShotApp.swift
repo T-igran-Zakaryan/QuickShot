@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct QuickShotApp: App {
-   @State private var selectedTab = 1
+   @State private var selectedTab = 2
       var body: some Scene {
          WindowGroup {
             TabView(selection: $selectedTab) {

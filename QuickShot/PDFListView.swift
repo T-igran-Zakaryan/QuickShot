@@ -6,7 +6,7 @@ struct PDFListView: View {
    @Environment(\.scenePhase) private var scenePhase
    @Namespace private var namespace
    @State private var selectedPDF : PDFItem?
-
+   
    var body: some View {
       NavigationStack {
          Group {
@@ -40,7 +40,7 @@ struct PDFListView: View {
             service.reload()
          }
       }
-
+      
    }
 }
 

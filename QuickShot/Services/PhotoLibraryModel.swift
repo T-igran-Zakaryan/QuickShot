@@ -9,6 +9,19 @@ import Foundation
 import Photos
 import UIKit
 
+enum PDFPageSizeOption: String, CaseIterable, Identifiable {
+    case a4
+    case keepOriginal
+    case fitAll
+
+    var id: String { rawValue }
+}
+
+struct PDFConversionSettings {
+    var pageSize: PDFPageSizeOption
+    var compressionQuality: CGFloat
+}
+
 @Observable
 final class PhotoLibraryModel: NSObject, PHPhotoLibraryChangeObserver {
     var assets: [PHAsset] = []
@@ -127,7 +140,7 @@ final class PhotoLibraryModel: NSObject, PHPhotoLibraryChangeObserver {
         }
     }
 
-    func pdfData(from assets: [PHAsset]) async -> Data? {
+    func pdfData(from assets: [PHAsset], settings: PDFConversionSettings) async -> Data? {
         guard !assets.isEmpty else { return nil }
 
         var images: [UIImage] = []
@@ -139,10 +152,10 @@ final class PhotoLibraryModel: NSObject, PHPhotoLibraryChangeObserver {
             }
         }
 
-        return makePDF(from: images)
+        return makePDF(from: images, settings: settings)
     }
 
-    private func makePDF(from images: [UIImage]) -> Data? {
+    private func makePDF(from images: [UIImage], settings: PDFConversionSettings) -> Data? {
         guard !images.isEmpty else { return nil }
 
         let data = NSMutableData()
@@ -152,13 +165,47 @@ final class PhotoLibraryModel: NSObject, PHPhotoLibraryChangeObserver {
             let size = image.size
             guard size.width > 0, size.height > 0 else { continue }
 
-            let pageRect = CGRect(origin: .zero, size: size)
+            let pageRect = pageRect(for: size, option: settings.pageSize)
             UIGraphicsBeginPDFPageWithInfo(pageRect, nil)
 
-            image.draw(in: pageRect)
+            let renderImage = compressedImage(from: image, quality: settings.compressionQuality) ?? image
+            let drawRect = drawRect(for: renderImage.size, in: pageRect, option: settings.pageSize)
+            renderImage.draw(in: drawRect)
         }
 
         UIGraphicsEndPDFContext()
         return data as Data
+    }
+
+    private func pageRect(for imageSize: CGSize, option: PDFPageSizeOption) -> CGRect {
+        switch option {
+        case .keepOriginal:
+            return CGRect(origin: .zero, size: imageSize)
+        case .a4:
+            return CGRect(origin: .zero, size: CGSize(width: 595.2, height: 841.8))
+        case .fitAll:
+            return CGRect(origin: .zero, size: CGSize(width: 612, height: 792))
+        }
+    }
+
+    private func drawRect(for imageSize: CGSize, in pageRect: CGRect, option: PDFPageSizeOption) -> CGRect {
+        switch option {
+        case .keepOriginal:
+            return pageRect
+        case .a4, .fitAll:
+            let scale = min(pageRect.width / imageSize.width, pageRect.height / imageSize.height)
+            let targetSize = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+            let origin = CGPoint(
+                x: (pageRect.width - targetSize.width) / 2.0,
+                y: (pageRect.height - targetSize.height) / 2.0
+            )
+            return CGRect(origin: origin, size: targetSize)
+        }
+    }
+
+    private func compressedImage(from image: UIImage, quality: CGFloat) -> UIImage? {
+        guard quality < 0.98 else { return image }
+        guard let data = image.jpegData(compressionQuality: quality) else { return nil }
+        return UIImage(data: data)
     }
 }
