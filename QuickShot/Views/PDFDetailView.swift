@@ -13,12 +13,6 @@ struct PDFDetailView: View {
 
    var body: some View {
       NavigationStack {
-         //      PDFKitView(
-         //         url: item.url,
-         //         currentPage: $currentPage,
-         //         pageCount: $pageCount,
-         //         onScrollStart: showPageIndicator
-         //      )
          PDFKitTestView(
             url: item.url,
             currentPage: $currentPage,
