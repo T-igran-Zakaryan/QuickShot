@@ -6,6 +6,7 @@
 //
 import SwiftUI
 import Photos
+import MapKit
 
 struct ImageInfoSheetView: View {
     let asset: PHAsset
@@ -15,29 +16,33 @@ struct ImageInfoSheetView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Basic info") {
+                VStack(alignment: .leading, spacing: 6) {
+                    
                     InfoRow(title: "Filename", value: filename ?? "Unknown")
+                    InfoRow(title: "File size", value: fileSize ?? "Unknown")
                     InfoRow(title: "Dimensions", value: "\(asset.pixelWidth) × \(asset.pixelHeight) px")
                     InfoRow(title: "Aspect ratio", value: aspectRatio)
                     InfoRow(title: "Favorite", value: asset.isFavorite ? "Yes" : "No")
-                }
-
-                Section("Dates") {
                     InfoRow(title: "Created", value: formattedDate(asset.creationDate))
                     InfoRow(title: "Modified", value: formattedDate(asset.modificationDate))
-                }
-
-                if let location = asset.location {
-                    Section("Location") {
-                        InfoRow(title: "Latitude", value: String(format: "%.5f", location.coordinate.latitude))
-                        InfoRow(title: "Longitude", value: String(format: "%.5f", location.coordinate.longitude))
+                    if let location = asset.location {
+                        Map(initialPosition: .region(region(for: location))) {
+                            Marker("Photo location", coordinate: location.coordinate)
+                        }
+                        .frame(height: 180)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
             }
             .navigationTitle("Image Details")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                   Button{
+                      dismiss()
+                   } label: {
+                      Image(systemName: "xmark")
+                   }
                 }
             }
         }
@@ -45,6 +50,14 @@ struct ImageInfoSheetView: View {
 
     private var filename: String? {
         PHAssetResource.assetResources(for: asset).first?.originalFilename
+    }
+
+    private var fileSize: String? {
+        guard let resource = PHAssetResource.assetResources(for: asset).first else { return nil }
+        if let bytes = resource.value(forKey: "fileSize") as? Int64 {
+            return AppFormatters.fileSize.string(fromByteCount: bytes)
+        }
+        return nil
     }
 
     private var aspectRatio: String {
@@ -58,6 +71,13 @@ struct ImageInfoSheetView: View {
         guard let date else { return "Unknown" }
         return AppFormatters.date.string(from: date)
     }
+
+    private func region(for location: CLLocation) -> MKCoordinateRegion {
+        MKCoordinateRegion(
+            center: location.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        )
+    }
 }
 
 private struct InfoRow: View {
@@ -67,10 +87,13 @@ private struct InfoRow: View {
     var body: some View {
         HStack(alignment: .top) {
             Text(title)
+                .font(.footnote)
                 .foregroundStyle(.secondary)
             Spacer()
             Text(value)
+                .font(.footnote)
                 .multilineTextAlignment(.trailing)
         }
+       Divider()
     }
 }

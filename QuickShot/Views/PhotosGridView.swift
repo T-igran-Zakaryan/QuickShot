@@ -56,7 +56,7 @@ struct AssetGridView: View {
                            .matchedTransitionSource(id: asset.localIdentifier, in: namespace)
                            
                            Rectangle()
-                              .fill(Color.black.opacity(isSelectionMode ? 0.35 : 0.15))
+                              .fill(Color.black.opacity(isSelectionMode ? 0.25 : 0))
                            
                            if isSelectionMode {
                               selectionBadge(isSelected: selectedAssetIDs.contains(asset.localIdentifier))
@@ -90,7 +90,7 @@ struct AssetGridView: View {
             }
          }
         .fullScreenCover(item: $selectedAsset) { selection in
-            PhotoFullScreenView(
+            ImageDetailView(
                 asset: selection.asset,
                 imageManager: model.imageManager,
                 isZoomed: $isZoomedInFullScreen
@@ -100,7 +100,7 @@ struct AssetGridView: View {
         }
          
          .sheet(isPresented: $isShowingConversionSheet) {
-            ConversionSettingsSheet(
+            ConversionSettingsSheetView(
                pageSize: $conversionPageSize,
                compressionQuality: $compressionQuality,
                isConverting: $isConverting

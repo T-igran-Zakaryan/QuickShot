@@ -13,6 +13,7 @@ struct ImageDetailView: View {
     let imageManager: PHCachingImageManager
     @Binding var isZoomed: Bool
     @State private var image: UIImage?
+    @State private var isShowingInfoSheet = false
     @State private var scale: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var accumulatedOffset: CGSize = .zero
@@ -37,8 +38,27 @@ struct ImageDetailView: View {
                     )
                     .highPriorityGesture(doubleTapZoomGesture(containerSize: proxy.size, image: image))
                   
-           } else {
-               ProgressView()
+            } else {
+                ProgressView()
+            }
+            
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        isShowingInfoSheet = true
+                    } label: {
+                        Image(systemName: "info.circle.fill")
+//                            .font(.title3)
+//                            .foregroundStyle(.primary)
+                            .padding(10)
+                            .glassEffect(.regular, in: Circle())
+                    }
+                    .accessibilityLabel("Image details")
+                }
+                .padding(.top, 12)
+                .padding(.trailing, 12)
+                Spacer()
             }
         }
       }
@@ -51,6 +71,9 @@ struct ImageDetailView: View {
       }
       .onChange(of: scale) { _, newValue in
          isZoomed = newValue > 1
+      }
+      .sheet(isPresented: $isShowingInfoSheet) {
+         ImageInfoSheetView(asset: asset)
       }
       
    }

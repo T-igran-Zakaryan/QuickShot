@@ -47,7 +47,7 @@ struct PageSizePickerView: View {
         case .a4:
             return "A4"
         case .keepOriginal:
-            return "Keep original size"
+            return "Keep image size"
         case .fitAll:
             return "Fit all images"
         }
