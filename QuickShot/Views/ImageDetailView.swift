@@ -9,58 +9,50 @@ import SwiftUI
 import Photos
 
 struct ImageDetailView: View {
-    let asset: PHAsset
-    let imageManager: PHCachingImageManager
-    @Binding var isZoomed: Bool
-    @State private var image: UIImage?
-    @State private var isShowingInfoSheet = false
-    @State private var scale: CGFloat = 1
-    @State private var offset: CGSize = .zero
-    @State private var accumulatedOffset: CGSize = .zero
-    private let doubleTapZoomScale: CGFloat = 2.5
-   
+   let asset: PHAsset
+   let imageManager: PHCachingImageManager
+   @Binding var isZoomed: Bool
+   @State private var image: UIImage?
+   @State private var isShowingInfoSheet = false
+   @State private var scale: CGFloat = 1
+   @State private var offset: CGSize = .zero
+   @State private var accumulatedOffset: CGSize = .zero
+   private let doubleTapZoomScale: CGFloat = 2.5
+
    var body: some View {
       GeometryReader { proxy in
-        ZStack {
-//            Color.black.ignoresSafeArea()
-//               .opacity(backgroundOpacity)
-            
+         VStack(spacing: 0) {
             if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: proxy.size.width, height: proxy.size.height, alignment: .center)
-                    .scaleEffect(scale)
-                    .offset(offset)
-                    .simultaneousGesture(
-                        dragGesture(containerSize: proxy.size, image: image),
-                        including: scale > 1 ? .all : .subviews
-                    )
-                    .highPriorityGesture(doubleTapZoomGesture(containerSize: proxy.size, image: image))
-                  
+               Image(uiImage: image)
+                  .resizable()
+                  .scaledToFit()
+                  .frame(width: proxy.size.width, height: proxy.size.height, alignment: .center)
+                  .scaleEffect(scale)
+                  .offset(offset)
+                  .simultaneousGesture(
+                     dragGesture(containerSize: proxy.size, image: image),
+                     including: scale > 1 ? .all : .subviews
+                  )
+                  .highPriorityGesture(doubleTapZoomGesture(containerSize: proxy.size, image: image))
             } else {
-                ProgressView()
+               ProgressView()
             }
-            
-            VStack {
-                HStack {
-                    Spacer()
-                    Button {
-                        isShowingInfoSheet = true
-                    } label: {
-                        Image(systemName: "info.circle.fill")
-//                            .font(.title3)
-//                            .foregroundStyle(.primary)
-                            .padding(10)
-                            .glassEffect(.regular, in: Circle())
-                    }
-                    .accessibilityLabel("Image details")
-                }
-                .padding(.top, 12)
-                .padding(.trailing, 12)
-                Spacer()
+         }
+      }
+      .safeAreaInset(edge: .bottom) {
+         HStack {
+            Spacer()
+            Button {
+               isShowingInfoSheet = true
+            } label: {
+               Image(systemName: "info.circle.fill")
+                  .padding(10)
+                  .glassEffect(.regular, in: Circle())
             }
-        }
+            .accessibilityLabel("Image details")
+            .padding()
+         }
+         .padding(.bottom, 12)
       }
       .onAppear {
          loadImage()
@@ -75,10 +67,10 @@ struct ImageDetailView: View {
       .sheet(isPresented: $isShowingInfoSheet) {
          ImageInfoSheetView(asset: asset)
       }
-      
+
    }
 
-   
+
    /// Loads the full-resolution image for display.
    private func loadImage() {
       imageManager.requestImage(
@@ -93,19 +85,19 @@ struct ImageDetailView: View {
          self.image = image
       }
    }
-   
-    private func dragGesture(containerSize: CGSize, image: UIImage) -> some Gesture {
-        DragGesture()
-            .onChanged { value in
-                guard scale > 1 else { return }
-                let candidate = CGSize(
-                    width: accumulatedOffset.width + value.translation.width,
-                    height: accumulatedOffset.height + value.translation.height
-                )
-                offset = clampedOffset(candidate, containerSize: containerSize, image: image, scale: scale)
-            }
-            .onEnded { value in
-                guard scale > 1 else { return }
+
+   private func dragGesture(containerSize: CGSize, image: UIImage) -> some Gesture {
+      DragGesture()
+         .onChanged { value in
+            guard scale > 1 else { return }
+            let candidate = CGSize(
+               width: accumulatedOffset.width + value.translation.width,
+               height: accumulatedOffset.height + value.translation.height
+            )
+            offset = clampedOffset(candidate, containerSize: containerSize, image: image, scale: scale)
+         }
+         .onEnded { value in
+            guard scale > 1 else { return }
 
             let momentum = CGSize(
                width: value.predictedEndTranslation.width - value.translation.width,
@@ -125,15 +117,15 @@ struct ImageDetailView: View {
    }
 
    /// Toggles zoom level on double tap to avoid drag/swipe conflicts.
-    private func doubleTapZoomGesture(containerSize: CGSize, image: UIImage) -> some Gesture {
-        TapGesture(count: 2)
-            .onEnded {
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-                    scale = scale > 1 ? 1 : doubleTapZoomScale
-                    if scale == 1 {
-                        offset = .zero
-                        accumulatedOffset = .zero
-                    } else {
+   private func doubleTapZoomGesture(containerSize: CGSize, image: UIImage) -> some Gesture {
+      TapGesture(count: 2)
+         .onEnded {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+               scale = scale > 1 ? 1 : doubleTapZoomScale
+               if scale == 1 {
+                  offset = .zero
+                  accumulatedOffset = .zero
+               } else {
                   offset = clampedOffset(offset, containerSize: containerSize, image: image, scale: scale)
                   accumulatedOffset = offset
                }
@@ -158,5 +150,5 @@ struct ImageDetailView: View {
       )
    }
 
-    // Background opacity/dismiss offsets removed with fullscreen gestures.
+   // Background opacity/dismiss offsets removed with fullscreen gestures.
 }

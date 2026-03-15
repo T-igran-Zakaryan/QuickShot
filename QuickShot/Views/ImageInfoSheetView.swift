@@ -12,6 +12,7 @@ struct ImageInfoSheetView: View {
     let asset: PHAsset
 
     @Environment(\.dismiss) private var dismiss
+    @State private var placeName: String?
 
     var body: some View {
         NavigationStack {
@@ -21,13 +22,12 @@ struct ImageInfoSheetView: View {
                     InfoRow(title: "Filename", value: filename ?? "Unknown")
                     InfoRow(title: "File size", value: fileSize ?? "Unknown")
                     InfoRow(title: "Dimensions", value: "\(asset.pixelWidth) × \(asset.pixelHeight) px")
-                    InfoRow(title: "Aspect ratio", value: aspectRatio)
-                    InfoRow(title: "Favorite", value: asset.isFavorite ? "Yes" : "No")
                     InfoRow(title: "Created", value: formattedDate(asset.creationDate))
                     InfoRow(title: "Modified", value: formattedDate(asset.modificationDate))
                     if let location = asset.location {
+                        InfoRow(title: "Place", value: placeName ?? "Unknown")
                         Map(initialPosition: .region(region(for: location))) {
-                            Marker("Photo location", coordinate: location.coordinate)
+                            Marker(placeName ?? "Photo location", coordinate: location.coordinate)
                         }
                         .frame(height: 180)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -45,6 +45,9 @@ struct ImageInfoSheetView: View {
                    }
                 }
             }
+        }
+        .task(id: locationKey) {
+            await loadPlaceName()
         }
     }
 
@@ -67,6 +70,11 @@ struct ImageInfoSheetView: View {
         return String(format: "%.2f:1", ratio)
     }
 
+    private var locationKey: String? {
+        guard let location = asset.location else { return nil }
+        return "\(location.coordinate.latitude),\(location.coordinate.longitude)"
+    }
+
     private func formattedDate(_ date: Date?) -> String {
         guard let date else { return "Unknown" }
         return AppFormatters.date.string(from: date)
@@ -77,6 +85,47 @@ struct ImageInfoSheetView: View {
             center: location.coordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
         )
+    }
+
+    private func loadPlaceName() async {
+        guard let location = asset.location else {
+            placeName = nil
+            return
+        }
+
+        guard let request = MKReverseGeocodingRequest(location: location) else {
+            placeName = nil
+            return
+        }
+
+        do {
+            let mapItems = try await request.mapItems
+            placeName = formatMapItem(mapItems.first)
+        } catch {
+            placeName = nil
+        }
+    }
+
+    private func formatMapItem(_ mapItem: MKMapItem?) -> String? {
+        guard let mapItem else { return nil }
+
+        if let representations = mapItem.addressRepresentations {
+            if let cityWithContext = representations.cityWithContext(.automatic) {
+                return cityWithContext
+            }
+            if let cityName = representations.cityName, let regionName = representations.regionName {
+                return "\(cityName), \(regionName)"
+            }
+            if let fullAddress = representations.fullAddress(includingRegion: true, singleLine: true) {
+                return fullAddress
+            }
+        }
+
+        if let shortAddress = mapItem.address?.shortAddress {
+            return shortAddress
+        }
+
+        return mapItem.address?.fullAddress
     }
 }
 
