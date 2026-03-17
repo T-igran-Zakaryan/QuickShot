@@ -13,10 +13,10 @@ struct QuickShotApp: App {
       var body: some Scene {
          WindowGroup {
             TabView(selection: $selectedTab) {
-               Tab("Images", systemImage: "photo", value: 1) {
+               Tab("Images", systemImage: "photo.stack", value: 1) {
                   AssetGridView()
                }
-               Tab("PDFs", systemImage: "tray.full.fill", value: 2) {
+               Tab("PDFs", systemImage: "folder", value: 2) {
                   PDFListView()
                }
                Tab("Settings", systemImage: "gearshape", value: 3) {

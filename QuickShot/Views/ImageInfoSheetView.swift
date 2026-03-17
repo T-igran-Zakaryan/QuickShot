@@ -18,19 +18,20 @@ struct ImageInfoSheetView: View {
         NavigationStack {
             Form {
                 VStack(alignment: .leading, spacing: 6) {
-                    
                     InfoRow(title: "Filename", value: filename ?? "Unknown")
                     InfoRow(title: "File size", value: fileSize ?? "Unknown")
                     InfoRow(title: "Dimensions", value: "\(asset.pixelWidth) × \(asset.pixelHeight) px")
                     InfoRow(title: "Created", value: formattedDate(asset.creationDate))
                     InfoRow(title: "Modified", value: formattedDate(asset.modificationDate))
+                   
                     if let location = asset.location {
-                        InfoRow(title: "Place", value: placeName ?? "Unknown")
-                        Map(initialPosition: .region(region(for: location))) {
-                            Marker(placeName ?? "Photo location", coordinate: location.coordinate)
+                        InfoRow(title: "Place", value: placeName ?? "Unknown") {
+                            Map(initialPosition: .region(region(for: location))) {
+                                Marker(placeName ?? "Photo location", coordinate: location.coordinate)
+                            }
+                            .frame(height: 180)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
-                        .frame(height: 180)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
             }
@@ -87,6 +88,7 @@ struct ImageInfoSheetView: View {
         )
     }
 
+    @MainActor
     private func loadPlaceName() async {
         guard let location = asset.location else {
             placeName = nil
@@ -129,20 +131,36 @@ struct ImageInfoSheetView: View {
     }
 }
 
-private struct InfoRow: View {
+private struct InfoRow<Detail: View>: View {
     let title: String
     let value: String
+    @ViewBuilder let detail: () -> Detail
+
+    init(
+        title: String,
+        value: String,
+        @ViewBuilder detail: @escaping () -> Detail = { EmptyView() }
+    ) {
+        self.title = title
+        self.value = value
+        self.detail = detail
+    }
 
     var body: some View {
-        HStack(alignment: .top) {
-            Text(title)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.footnote)
-                .multilineTextAlignment(.trailing)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                Text(title)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(value)
+                    .font(.footnote)
+                    .multilineTextAlignment(.trailing)
+            }
+
+            detail()
+
+            Divider()
         }
-       Divider()
     }
 }
