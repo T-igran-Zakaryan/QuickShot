@@ -18,41 +18,51 @@ struct ImageDetailView: View {
    @State private var offset: CGSize = .zero
    @State private var accumulatedOffset: CGSize = .zero
    private let doubleTapZoomScale: CGFloat = 2.5
+   
+   private var filename: String? {
+      PHAssetResource.assetResources(for: asset).first?.originalFilename
+   }
 
    var body: some View {
-      GeometryReader { proxy in
-         VStack(spacing: 0) {
-            if let image {
-               Image(uiImage: image)
-                  .resizable()
-                  .scaledToFit()
-                  .frame(width: proxy.size.width, height: proxy.size.height, alignment: .center)
-                  .scaleEffect(scale)
-                  .offset(offset)
-                  .simultaneousGesture(
-                     dragGesture(containerSize: proxy.size, image: image),
-                     including: scale > 1 ? .all : .subviews
-                  )
-                  .highPriorityGesture(doubleTapZoomGesture(containerSize: proxy.size, image: image))
-            } else {
-               ProgressView()
+      NavigationStack {
+         GeometryReader { proxy in
+               if let image {
+                  Image(uiImage: image)
+                     .resizable()
+                     .scaledToFit()
+                     .scaleEffect(scale)
+                     .offset(offset)
+                     .simultaneousGesture(
+                        dragGesture(containerSize: proxy.size, image: image),
+                        including: scale > 1 ? .all : .subviews
+                     )
+                     .highPriorityGesture(doubleTapZoomGesture(containerSize: proxy.size, image: image))
+                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+               } else {
+                  ProgressView()
+                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+               }
+         }
+         .ignoresSafeArea()
+         .overlay {
+            Text("\(formattedDate(asset.creationDate))")
+               .padding()
+               .glassEffect()
+               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+         }
+         .toolbar {
+            ToolbarItem(placement: .bottomBar) {
+               Spacer()
+            }
+            ToolbarItem(placement: .bottomBar) {
+               Button {
+                  isShowingInfoSheet = true
+               } label: {
+                  Image(systemName: "info.circle")
+               }
+               .accessibilityLabel("Image details")
             }
          }
-      }
-      .safeAreaInset(edge: .bottom) {
-         HStack {
-            Spacer()
-            Button {
-               isShowingInfoSheet = true
-            } label: {
-               Image(systemName: "info.circle.fill")
-                  .padding(10)
-                  .glassEffect(.regular, in: Circle())
-            }
-            .accessibilityLabel("Image details")
-            .padding()
-         }
-         .padding(.bottom, 12)
       }
       .onAppear {
          loadImage()
@@ -70,6 +80,10 @@ struct ImageDetailView: View {
 
    }
 
+   private func formattedDate(_ date: Date?) -> String {
+      guard let date else { return "Unknown" }
+      return AppFormatters.date.string(from: date)
+   }
 
    /// Loads the full-resolution image for display.
    private func loadImage() {

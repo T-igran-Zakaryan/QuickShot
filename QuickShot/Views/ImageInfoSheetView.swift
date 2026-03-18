@@ -13,6 +13,30 @@ struct ImageInfoSheetView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var placeName: String?
+   
+   private var filename: String? {
+      PHAssetResource.assetResources(for: asset).first?.originalFilename
+   }
+   
+   private var fileSize: String? {
+      guard let resource = PHAssetResource.assetResources(for: asset).first else { return nil }
+      if let bytes = resource.value(forKey: "fileSize") as? Int64 {
+         return AppFormatters.fileSize.string(fromByteCount: bytes)
+      }
+      return nil
+   }
+   
+   private var aspectRatio: String {
+      let width = max(asset.pixelWidth, 1)
+      let height = max(asset.pixelHeight, 1)
+      let ratio = Double(width) / Double(height)
+      return String(format: "%.2f:1", ratio)
+   }
+   
+   private var locationKey: String? {
+      guard let location = asset.location else { return nil }
+      return "\(location.coordinate.latitude),\(location.coordinate.longitude)"
+   }
 
     var body: some View {
         NavigationStack {
@@ -50,30 +74,6 @@ struct ImageInfoSheetView: View {
         .task(id: locationKey) {
             await loadPlaceName()
         }
-    }
-
-    private var filename: String? {
-        PHAssetResource.assetResources(for: asset).first?.originalFilename
-    }
-
-    private var fileSize: String? {
-        guard let resource = PHAssetResource.assetResources(for: asset).first else { return nil }
-        if let bytes = resource.value(forKey: "fileSize") as? Int64 {
-            return AppFormatters.fileSize.string(fromByteCount: bytes)
-        }
-        return nil
-    }
-
-    private var aspectRatio: String {
-        let width = max(asset.pixelWidth, 1)
-        let height = max(asset.pixelHeight, 1)
-        let ratio = Double(width) / Double(height)
-        return String(format: "%.2f:1", ratio)
-    }
-
-    private var locationKey: String? {
-        guard let location = asset.location else { return nil }
-        return "\(location.coordinate.latitude),\(location.coordinate.longitude)"
     }
 
     private func formattedDate(_ date: Date?) -> String {

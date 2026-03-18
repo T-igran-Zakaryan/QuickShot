@@ -27,12 +27,16 @@ struct AssetGridView: View {
    @State private var selectedAssetOrder: [String] = []
    @State private var isSelectionMode = false
    @State private var isConverting = false
-    @State private var isShowingConversionSheet = false
-    @State private var conversionPageSize: PDFPageSizeOption = .a4
-    @State private var compressionQuality: Double = 0.8
+   @State private var isShowingConversionSheet = false
+   @State private var conversionPageSize: PDFPageSizeOption = .a4
+   @State private var compressionQuality: Double = 0.8
     @State private var didScrollToBottom = false
     @State private var isZoomedInFullScreen = false
    private let gridBottomAnchorID = "grid-bottom-anchor"
+
+   private var shouldShowConvertButton: Bool {
+      isSelectionMode && !selectedAssetIDs.isEmpty
+   }
    
    var body: some View {
       NavigationStack {
@@ -89,20 +93,21 @@ struct AssetGridView: View {
                }
             }
          }
-        .fullScreenCover(item: $selectedAsset) { selection in
+         .fullScreenCover(item: $selectedAsset) { selection in
             ImageDetailView(
-                asset: selection.asset,
-                imageManager: model.imageManager,
-                isZoomed: $isZoomedInFullScreen
+               asset: selection.asset,
+               imageManager: model.imageManager,
+               isZoomed: $isZoomedInFullScreen
             )
-               .navigationTransition(.zoom(sourceID: selection.id, in: namespace))
-                .interactiveDismissDisabled(isZoomedInFullScreen)
-        }
+            .navigationTransition(.zoom(sourceID: selection.id, in: namespace))
+            .interactiveDismissDisabled(isZoomedInFullScreen)
+         }
          
          .sheet(isPresented: $isShowingConversionSheet) {
             ConversionSettingsSheetView(
                pageSize: $conversionPageSize,
                compressionQuality: $compressionQuality,
+               useSelectionOrder: $useSelectionOrder,
                isConverting: $isConverting
             ) {
                await convertSelectedAssets()
@@ -111,20 +116,27 @@ struct AssetGridView: View {
          .navigationTitle("Photos")
          .navigationSubtitle("\(model.assets.count) - elements")
          .toolbarTitleDisplayMode(.inlineLarge)
-         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+         .safeAreaInset(edge: .bottom) {
+            if shouldShowConvertButton {
                Button {
                   isShowingConversionSheet = true
                } label: {
-                  Image(systemName: "arrow.up.document.fill")
+                  Label("Convert to PDF", systemImage: "doc.badge.plus")
                }
+               .buttonStyle(.glass)
                .disabled(selectedAssetIDs.isEmpty || isConverting)
+               .padding(.horizontal)
+               .padding(.bottom, 6)
+               .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+         }
+         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: shouldShowConvertButton)
+         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                Button {
                   toggleSelectionMode()
                } label: {
-                  Image(systemName: isSelectionMode ? "checkmark.circle" :  "circle.grid.2x2.topleft.checkmark.filled")
+                  Image(systemName: isSelectionMode ? "checkmark" :  "circle.grid.2x2.topleft.checkmark.filled")
                }
             }
          }
@@ -166,7 +178,7 @@ struct AssetGridView: View {
    @MainActor
    private func convertSelectedAssets() async {
       guard !isConverting else { return }
-
+      
       isConverting = true
       let selectedAssets: [PHAsset]
       if useSelectionOrder {
@@ -181,7 +193,7 @@ struct AssetGridView: View {
          pageSize: conversionPageSize,
          compressionQuality: CGFloat(compressionQuality)
       )
-
+      
       if let data = await model.pdfData(from: selectedAssets, settings: settings) {
          _ = pdfService.savePDF(data: data)
       }
@@ -192,7 +204,7 @@ struct AssetGridView: View {
       isSelectionMode = false
       isShowingConversionSheet = false
    }
-
+   
    private func scrollToBottomIfNeeded(using scrollProxy: ScrollViewProxy) {
       guard !didScrollToBottom, !model.assets.isEmpty else {
          return
@@ -207,11 +219,10 @@ struct AssetGridView: View {
    private func selectionBadge(isSelected: Bool) -> some View {
       Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
          .font(.title3)
-//         .symbolRenderingMode(.palette)
-//         .foregroundStyle(.white, isSelected ? .blue : .gray)
+         //         .symbolRenderingMode(.palette)
+         //         .foregroundStyle(.white, isSelected ? .blue : .gray)
          .foregroundColor(isSelected ? .blue : .white)
          .padding(6)
    }
 }
-
 

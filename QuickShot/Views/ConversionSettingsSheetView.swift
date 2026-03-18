@@ -10,6 +10,7 @@ import PDFKit
 struct ConversionSettingsSheetView: View {
    @Binding var pageSize: PDFPageSizeOption
    @Binding var compressionQuality: Double
+   @Binding var useSelectionOrder: Bool
    @Binding var isConverting: Bool
    let onConvert: () async -> Void
 
@@ -37,6 +38,13 @@ struct ConversionSettingsSheetView: View {
                   .foregroundStyle(.secondary)
                }
                Text("Reducing file size don't affect to a reading quality.")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+            }
+
+            Section("Page order") {
+               Toggle("Use Selection Order", isOn: $useSelectionOrder)
+               Text(useSelectionOrder ? "Pages will follow the order you tapped the photos." : "Pages will follow the photo library order.")
                   .font(.caption)
                   .foregroundStyle(.secondary)
             }
