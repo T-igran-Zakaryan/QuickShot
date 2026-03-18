@@ -7,7 +7,7 @@
 import SwiftUI
 import PDFKit
 
-struct ConversionSettingsSheetView: View {
+struct ConversionSettingsView: View {
    @Binding var pageSize: PDFPageSizeOption
    @Binding var compressionQuality: Double
    @Binding var useSelectionOrder: Bool
