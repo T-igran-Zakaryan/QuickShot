@@ -48,7 +48,7 @@ struct ConversionSettingsView: View {
                   .font(.caption)
                   .foregroundStyle(.secondary)
             }
-
+ /// MARK:  This should be fixed
             if isConverting {
                Section {
                   HStack(spacing: 12) {
@@ -58,6 +58,7 @@ struct ConversionSettingsView: View {
                }
             }
          }
+ ///
          .navigationTitle("Conversion Settings")
          .toolbar {
             ToolbarItem(placement: .cancellationAction) {

@@ -64,6 +64,10 @@ final class PDFLibraryService {
       reload()
    }
 
+   func delete(_ item: PDFItem) {
+      delete([item])
+   }
+
    func thumbnail(for url: URL) async -> UIImage? {
       if let cached = thumbnailCache.object(forKey: url as NSURL) {
          return cached

@@ -21,6 +21,13 @@ struct PDFListView: View {
                      PDFRowView(item: item, service: service, namespace: namespace) {
                         selectedPDF = item
                      }
+                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                           delete(item)
+                        } label: {
+                           Label("Delete", systemImage: "trash")
+                        }
+                     }
                   }
                }
                .listStyle(.plain)
@@ -40,7 +47,13 @@ struct PDFListView: View {
             service.reload()
          }
       }
-      
+   }
+
+   private func delete(_ item: PDFItem) {
+      if selectedPDF == item {
+         selectedPDF = nil
+      }
+      service.delete(item)
    }
 }
 
