@@ -35,7 +35,7 @@ struct AssetGridView: View {
    private let gridBottomAnchorID = "grid-bottom-anchor"
 
    private var shouldShowConvertButton: Bool {
-      isSelectionMode && !selectedAssetIDs.isEmpty
+      isSelectionMode
    }
    
    var body: some View {
@@ -68,6 +68,12 @@ struct AssetGridView: View {
                         }
                         .onTapGesture {
                            handleTap(on: asset)
+                        }
+                        .onLongPressGesture {
+                           if !isSelectionMode {
+                              isSelectionMode = true
+                           }
+                           toggleSelection(for: asset)
                         }
                         .animation(.default, value: isSelectionMode)
                      }
@@ -104,7 +110,7 @@ struct AssetGridView: View {
          }
          
          .sheet(isPresented: $isShowingConversionSheet) {
-            ConversionSettingsSheetView(
+            ConversionSettingsView(
                pageSize: $conversionPageSize,
                compressionQuality: $compressionQuality,
                useSelectionOrder: $useSelectionOrder,
@@ -116,7 +122,7 @@ struct AssetGridView: View {
          .navigationTitle("Photos")
          .navigationSubtitle("\(model.assets.count) - elements")
          .toolbarTitleDisplayMode(.inlineLarge)
-         .safeAreaInset(edge: .bottom) {
+         .overlay(alignment: .bottom) {
             if shouldShowConvertButton {
                Button {
                   isShowingConversionSheet = true
@@ -147,6 +153,7 @@ struct AssetGridView: View {
    private func handleTap(on asset: PHAsset) {
       if isSelectionMode {
          toggleSelection(for: asset)
+         
       } else {
          selectedAsset = SelectedAsset(asset: asset)
       }
@@ -225,4 +232,3 @@ struct AssetGridView: View {
          .padding(6)
    }
 }
-
