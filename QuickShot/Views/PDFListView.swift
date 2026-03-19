@@ -27,6 +27,11 @@ struct PDFListView: View {
                         } label: {
                            Label("Delete", systemImage: "trash")
                         }
+
+                        ShareLink(item: item.url) {
+                           Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        .tint(.blue)
                      }
                   }
                }
