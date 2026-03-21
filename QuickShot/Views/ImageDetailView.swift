@@ -18,6 +18,7 @@ struct ImageDetailView: View {
    @State private var offset: CGSize = .zero
    @State private var accumulatedOffset: CGSize = .zero
    private let doubleTapZoomScale: CGFloat = 2.5
+   @State private var showButtons = true
    
    private var filename: String? {
       PHAssetResource.assetResources(for: asset).first?.originalFilename
@@ -32,12 +33,14 @@ struct ImageDetailView: View {
                      .scaledToFit()
                      .scaleEffect(scale)
                      .offset(offset)
+                     .contentShape(Rectangle())
                      .simultaneousGesture(
                         dragGesture(containerSize: proxy.size, image: image),
                         including: scale > 1 ? .all : .subviews
                      )
-                     .highPriorityGesture(doubleTapZoomGesture(containerSize: proxy.size, image: image))
+                     .highPriorityGesture(imageTapGesture(containerSize: proxy.size, image: image))
                      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                  
                } else {
                   ProgressView()
                      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -49,6 +52,7 @@ struct ImageDetailView: View {
                .padding()
                .glassEffect()
                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+               .opacity(isZoomed || !showButtons ? 0 : 1)
          }
          .toolbar {
             ToolbarItem(placement: .bottomBar) {
@@ -63,10 +67,14 @@ struct ImageDetailView: View {
                .accessibilityLabel("Image details")
             }
          }
+         .toolbarVisibility(isZoomed || !showButtons ? .hidden : .visible, for: .bottomBar)
+         .animation(.easeInOut(duration: 0.2), value: isZoomed)
+         .animation(.easeInOut(duration: 0.2), value: showButtons)
       }
       .onAppear {
          loadImage()
          isZoomed = scale > 1
+         showButtons = true
       }
       .onDisappear {
          isZoomed = false
@@ -130,9 +138,8 @@ struct ImageDetailView: View {
          }
    }
 
-   /// Toggles zoom level on double tap to avoid drag/swipe conflicts.
-   private func doubleTapZoomGesture(containerSize: CGSize, image: UIImage) -> some Gesture {
-      TapGesture(count: 2)
+   private func imageTapGesture(containerSize: CGSize, image: UIImage) -> some Gesture {
+      let doubleTap = TapGesture(count: 2)
          .onEnded {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
                scale = scale > 1 ? 1 : doubleTapZoomScale
@@ -145,6 +152,16 @@ struct ImageDetailView: View {
                }
             }
          }
+
+      let singleTap = TapGesture()
+         .onEnded {
+            guard scale == 1 else { return }
+            withAnimation(.easeInOut(duration: 0.2)) {
+               showButtons.toggle()
+            }
+         }
+
+      return doubleTap.exclusively(before: singleTap)
    }
 
    private func clampedOffset(_ candidate: CGSize, containerSize: CGSize, image: UIImage, scale: CGFloat) -> CGSize {

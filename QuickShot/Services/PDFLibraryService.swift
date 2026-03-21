@@ -41,9 +41,9 @@ final class PDFLibraryService {
       pdfItems = items
    }
 
-   func savePDF(data: Data) -> URL? {
+   func savePDF(data: Data, prefix: String = "I2P") -> URL? {
       let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-      let fileName = "I2P_\(timestamp).pdf"
+      let fileName = "\(prefix)_\(timestamp).pdf"
       let destinationURL = documentsURL.appendingPathComponent(fileName)
 
       do {

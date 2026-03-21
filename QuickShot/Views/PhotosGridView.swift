@@ -5,15 +5,9 @@
    //  Created by Тигран Закарян on 01.03.26.
    //
 
-
 import SwiftUI
 import Photos
 
-   /// Wrapper to give PHAsset identity without retroactive conformance.
-private struct SelectedAsset: Identifiable {
-   let asset: PHAsset
-   var id: String { asset.localIdentifier }
-}
 
 struct AssetGridView: View {
    @Environment(\.displayScale) private var displayScale
@@ -30,10 +24,10 @@ struct AssetGridView: View {
    @State private var isShowingConversionSheet = false
    @State private var conversionPageSize: PDFPageSizeOption = .a4
    @State private var compressionQuality: Double = 0.8
-    @State private var didScrollToBottom = false
-    @State private var isZoomedInFullScreen = false
+   @State private var didScrollToBottom = false
+   @State private var isZoomedInFullScreen = false
    private let gridBottomAnchorID = "grid-bottom-anchor"
-
+   
    private var shouldShowConvertButton: Bool {
       isSelectionMode
    }

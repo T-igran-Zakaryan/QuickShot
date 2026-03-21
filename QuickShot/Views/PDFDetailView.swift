@@ -14,7 +14,7 @@ struct PDFDetailView: View {
    let item: PDFItem
 
    private var documentPreview: SharePreview<Image, Never> {
-      SharePreview(item.displayName, image: Image(uiImage: thumbnailImage))
+      SharePreview(item.displayName.truncatedMiddle(charLimit: 6), image: Image(uiImage: thumbnailImage))
    }
 
    var body: some View {
@@ -49,8 +49,6 @@ struct PDFDetailView: View {
                if pageCount > 1 {
                   Text("\(currentPage)/\(pageCount)")
                      .font(.callout.weight(.semibold))
-               } else {
-                  Text("")
                }
             }
             ToolbarItem(placement: .topBarLeading) {
