@@ -14,7 +14,7 @@ struct QuickShotApp: App {
          WindowGroup {
             TabView(selection: $selectedTab) {
                Tab("Images", systemImage: "photo.stack", value: 1) {
-                  AssetGridView()
+                  ImagesGridView()
                }
                Tab("PDFs", systemImage: "folder", value: 2) {
                   PDFListView()

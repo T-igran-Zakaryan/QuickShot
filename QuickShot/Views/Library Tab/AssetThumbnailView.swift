@@ -14,6 +14,7 @@ struct AssetThumbnailView: View {
    let imageManager: PHCachingImageManager
 
    @State private var image: UIImage?
+   @Binding var imageHeight: CGFloat
 
    var body: some View {
       GeometryReader {
@@ -31,7 +32,7 @@ struct AssetThumbnailView: View {
             }
          }
       }
-      .frame(height: 130)
+      .frame(height: imageHeight)
       .clipShape(RoundedRectangle(cornerRadius: 2))
 
       .onAppear {

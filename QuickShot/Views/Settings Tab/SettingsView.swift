@@ -24,6 +24,7 @@ struct SettingsView: View {
                     Button("Privacy Policy") {
                         isShowingPrivacyPolicy = true
                     }
+                    .buttonStyle(.glassProminent)
                 }
             }
             .navigationTitle("Settings")

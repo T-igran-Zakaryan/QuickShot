@@ -9,7 +9,7 @@ import SwiftUI
 import Photos
 
 
-struct AssetGridView: View {
+struct ImagesGridView: View {
    @Environment(\.displayScale) private var displayScale
    @AppStorage("useSelectionOrder") private var useSelectionOrder = false
    @State private var model = PhotoLibraryModel()
@@ -31,6 +31,8 @@ struct AssetGridView: View {
    private var shouldShowConvertButton: Bool {
       isSelectionMode
    }
+   @State private var gridItemCount = 3
+   @State var imageHeight: CGFloat = 130
    
    var body: some View {
       NavigationStack {
@@ -41,13 +43,14 @@ struct AssetGridView: View {
             
             ScrollViewReader { scrollProxy in
                ScrollView {
-                  LazyVGrid(columns: Array(repeating: GridItem(spacing: 2), count: 3), spacing: 2) {
+                  LazyVGrid(columns: Array(repeating: GridItem(spacing: 2), count: gridItemCount), spacing: 2) {
                      ForEach(model.assets, id: \.localIdentifier) { asset in
                         ZStack(alignment: .topTrailing) {
                            AssetThumbnailView(
                               asset: asset,
                               targetSize: targetSize,
-                              imageManager: model.imageManager
+                              imageManager: model.imageManager,
+                              imageHeight: $imageHeight
                            )
                            .contentShape(Rectangle())
                            
@@ -136,8 +139,28 @@ struct AssetGridView: View {
                Button {
                   toggleSelectionMode()
                } label: {
-                  Image(systemName: isSelectionMode ? "checkmark" :  "circle.grid.2x2.topleft.checkmark.filled")
+                  Image(systemName: isSelectionMode ? "checkmark.circle" :  "circle.grid.2x2.topleft.checkmark.filled")
                }
+            }
+            ToolbarItemGroup {
+               Button("Minus", systemImage: "minus") {
+                  gridItemCount -= 2
+               }
+               .disabled(gridItemCount == 1 ? true : false)
+               
+               Button("Plus", systemImage: "plus") {
+                  gridItemCount += 2
+               }
+               .disabled(gridItemCount == 5 ? true : false)
+            }
+         }
+         .onChange(of: gridItemCount) { _, newCount in
+            if newCount == 1 {
+               imageHeight = 500
+            } else if newCount == 3 {
+               imageHeight = 130
+            } else if newCount == 5 {
+               imageHeight = 80
             }
          }
       }
