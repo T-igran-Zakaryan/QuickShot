@@ -14,7 +14,7 @@ struct PDFListView: View {
          Group {
             if service.pdfItems.isEmpty {
                ContentUnavailableView(
-                  "There are no pdfs here",
+                  "There are no PDFs to display here",
                   systemImage: "tray.full.fill"
                )
             } else {
