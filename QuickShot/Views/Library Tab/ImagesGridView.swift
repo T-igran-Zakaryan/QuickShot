@@ -31,8 +31,8 @@ struct ImagesGridView: View {
    private var shouldShowConvertButton: Bool {
       isSelectionMode
    }
-   @State private var gridItemCount = 3
-   @State var imageHeight: CGFloat = 130
+   @State private var gridItemCount = 5
+   @State var imageHeight: CGFloat = 80
    
    var body: some View {
       NavigationStack {
@@ -142,27 +142,27 @@ struct ImagesGridView: View {
                   Image(systemName: isSelectionMode ? "checkmark.circle" :  "circle.grid.2x2.topleft.checkmark.filled")
                }
             }
-            ToolbarItemGroup {
-               Button("Minus", systemImage: "minus") {
-                  gridItemCount -= 2
-               }
-               .disabled(gridItemCount == 1 ? true : false)
-               
-               Button("Plus", systemImage: "plus") {
-                  gridItemCount += 2
-               }
-               .disabled(gridItemCount == 5 ? true : false)
-            }
+//            ToolbarItemGroup {
+//               Button("Minus", systemImage: "minus") {
+//                  gridItemCount -= 2
+//               }
+//               .disabled(gridItemCount == 1 ? true : false)
+//               
+//               Button("Plus", systemImage: "plus") {
+//                  gridItemCount += 2
+//               }
+//               .disabled(gridItemCount == 5 ? true : false)
+//            }
          }
-         .onChange(of: gridItemCount) { _, newCount in
-            if newCount == 1 {
-               imageHeight = 500
-            } else if newCount == 3 {
-               imageHeight = 130
-            } else if newCount == 5 {
-               imageHeight = 80
-            }
-         }
+//         .onChange(of: gridItemCount) { _, newCount in
+//            if newCount == 1 {
+//               imageHeight = 500
+//            } else if newCount == 3 {
+//               imageHeight = 130
+//            } else if newCount == 5 {
+//               imageHeight = 80
+//            }
+//         }
       }
    }
    
