@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("useSelectionOrder") private var useSelectionOrder = false
+    @AppStorage("showsDocumentsTab") private var showsDocumentsTab = false
     private let appVersion = Bundle.main.appVersionDisplayString
     @State private var isShowingPrivacyPolicy = false
 
@@ -14,6 +15,14 @@ struct SettingsView: View {
                     Text("Conversion")
                 } footer: {
                     Text("When off, page order follows the photo library.")
+                }
+
+                Section {
+                    Toggle("Show Documents Tab", isOn: $showsDocumentsTab)
+                } header: {
+                    Text("Library")
+                } footer: {
+                    Text("Adds a Documents tab placeholder for document-focused library browsing. This feature can be power-consuming, may cause your phone to get warm, and might still show some images that do not look like documents.")
                 }
 
                 Section("About") {
@@ -68,5 +77,3 @@ private struct PrivacyPolicyView: View {
         You can manage photo access in the system Settings app and delete generated PDFs from within QuickShot at any time.
         """
 }
-
-
