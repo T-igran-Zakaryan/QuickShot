@@ -43,42 +43,30 @@ struct ImagesGridView: View {
             
             ScrollViewReader { scrollProxy in
                ScrollView {
-                  LazyVGrid(columns: Array(repeating: GridItem(spacing: 2), count: gridItemCount), spacing: 2) {
-                     ForEach(model.assets, id: \.localIdentifier) { asset in
-                        ZStack(alignment: .topTrailing) {
-                           AssetThumbnailView(
-                              asset: asset,
-                              targetSize: targetSize,
-                              imageManager: model.imageManager,
-                              imageHeight: $imageHeight
-                           )
-                           .contentShape(Rectangle())
-                           
-                           .matchedTransitionSource(id: asset.localIdentifier, in: namespace)
-                           
-                           Rectangle()
-                              .fill(Color.black.opacity(isSelectionMode ? 0.25 : 0))
-                           
-                           if isSelectionMode {
-                              selectionBadge(isSelected: selectedAssetIDs.contains(asset.localIdentifier))
-                           }
+                  PhotoAssetGridContent(
+                     assets: model.assets,
+                     imageManager: model.imageManager,
+                     targetSize: targetSize,
+                     namespace: namespace,
+                     gridItemCount: gridItemCount,
+                     onTap: handleTap(on:),
+                     onLongPress: handleLongPress(on:),
+                     imageHeight: $imageHeight
+                  ) { asset in
+                     ZStack(alignment: .topTrailing) {
+                        Rectangle()
+                           .fill(Color.black.opacity(isSelectionMode ? 0.25 : 0))
+
+                        if isSelectionMode {
+                           selectionBadge(isSelected: selectedAssetIDs.contains(asset.localIdentifier))
                         }
-                        .onTapGesture {
-                           handleTap(on: asset)
-                        }
-                        .onLongPressGesture {
-                           if !isSelectionMode {
-                              isSelectionMode = true
-                           }
-                           toggleSelection(for: asset)
-                        }
-                        .animation(.default, value: isSelectionMode)
                      }
-                     Color.clear
-                        .frame(height: 1)
-                        .id(gridBottomAnchorID)
+                     .animation(.default, value: isSelectionMode)
                   }
-                  
+
+                  Color.clear
+                     .frame(height: 1)
+                     .id(gridBottomAnchorID)
                }
                .onAppear {
                   didScrollToBottom = false
@@ -197,6 +185,15 @@ struct ImagesGridView: View {
          selectedAssetIDs.insert(id)
          selectedAssetOrder.append(id)
       }
+   }
+
+   @MainActor
+   private func handleLongPress(on asset: PHAsset) {
+      if !isSelectionMode {
+         isSelectionMode = true
+      }
+
+      toggleSelection(for: asset)
    }
    
    @MainActor
