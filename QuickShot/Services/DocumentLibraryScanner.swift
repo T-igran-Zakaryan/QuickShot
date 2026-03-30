@@ -5,7 +5,7 @@ import UIKit
 import Vision
 
 enum DocumentLibraryScanner {
-    private static let scanSize = CGSize(width: 360, height: 360)
+    private static let scanSize = CGSize(width: 480, height: 480)
     private static let maxConcurrentScans = 2
 
     static func scanDocumentAssetIdentifiers(
@@ -59,22 +59,31 @@ enum DocumentLibraryScanner {
         guard !Task.isCancelled else { return false }
         guard let asset = fetchAsset(withIdentifier: assetIdentifier) else { return false }
         guard asset.mediaType == .image else { return false }
-        guard asset.pixelWidth >= 600, asset.pixelHeight >= 600 else { return false }
+        guard asset.pixelWidth >= 320, asset.pixelHeight >= 320 else { return false }
         guard let image = await thumbnail(for: asset, targetSize: scanSize) else { return false }
 
         return autoreleasepool {
             guard let cgImage = image.normalizedCGImage else { return false }
+            let orientation = image.cgImagePropertyOrientation
 
-            let textFeatures = recognizeText(in: cgImage, orientation: image.cgImagePropertyOrientation)
-            let rectangleConfidence = detectRectangleConfidence(in: cgImage, orientation: image.cgImagePropertyOrientation)
+            if containsHumanFace(in: cgImage, orientation: orientation) {
+                return false
+            }
+
+            let textFeatures = recognizeText(in: cgImage, orientation: orientation)
+            let rectangleConfidence = detectRectangleConfidence(in: cgImage, orientation: orientation)
             let brightBackgroundRatio = paperLikeBackgroundRatio(in: cgImage)
             let isScreenshot = asset.mediaSubtypes.contains(.photoScreenshot)
+            let isPortraitLike = aspectRatio(of: cgImage) <= 0.82
 
-            let hasTextMass = textFeatures.characterCount >= 18 || textFeatures.observationCount >= 3
-            let denseText = textFeatures.coverage >= 0.055 || textFeatures.characterCount >= 40
-            let paperStyle = brightBackgroundRatio >= 0.42
-            let rectangleWithText = rectangleConfidence >= 0.55 && textFeatures.characterCount >= 10
-            let screenshotWithText = isScreenshot && (hasTextMass || textFeatures.coverage >= 0.04)
+            let hasTextMass = textFeatures.characterCount >= 8 || textFeatures.observationCount >= 2
+            let denseText = textFeatures.coverage >= 0.03 || textFeatures.characterCount >= 24
+            let paperStyle = brightBackgroundRatio >= 0.33
+            let rectangleWithText = rectangleConfidence >= 0.4 && textFeatures.characterCount >= 6
+            let paperRectangle = paperStyle && rectangleConfidence >= 0.45
+            let paperWithText = paperStyle && hasTextMass
+            let textHeavyPortrait = isPortraitLike && paperStyle && denseText
+            let screenshotWithText = isScreenshot && (hasTextMass || textFeatures.coverage >= 0.025)
 
             if screenshotWithText {
                 return true
@@ -84,11 +93,15 @@ enum DocumentLibraryScanner {
                 return true
             }
 
-            if paperStyle && hasTextMass {
+            if paperRectangle {
                 return true
             }
 
-            return paperStyle && denseText
+            if paperWithText {
+                return true
+            }
+
+            return textHeavyPortrait
         }
     }
 
@@ -149,7 +162,7 @@ enum DocumentLibraryScanner {
         request.recognitionLevel = .fast
         request.usesLanguageCorrection = false
         request.automaticallyDetectsLanguage = false
-        request.minimumTextHeight = 0.02
+        request.minimumTextHeight = 0.012
 
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation)
 
@@ -188,11 +201,11 @@ enum DocumentLibraryScanner {
     ) -> Float {
         let request = VNDetectRectanglesRequest()
         request.maximumObservations = 1
-        request.minimumConfidence = 0.55
-        request.minimumAspectRatio = 0.45
+        request.minimumConfidence = 0.35
+        request.minimumAspectRatio = 0.35
         request.maximumAspectRatio = 1.0
-        request.minimumSize = 0.35
-        request.quadratureTolerance = 25
+        request.minimumSize = 0.2
+        request.quadratureTolerance = 30
 
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation)
 
@@ -203,6 +216,23 @@ enum DocumentLibraryScanner {
         }
 
         return request.results?.first?.confidence ?? 0
+    }
+
+    private static func containsHumanFace(
+        in cgImage: CGImage,
+        orientation: CGImagePropertyOrientation
+    ) -> Bool {
+        let request = VNDetectFaceRectanglesRequest()
+
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation)
+
+        do {
+            try handler.perform([request])
+        } catch {
+            return false
+        }
+
+        return !(request.results ?? []).isEmpty
     }
 
     private static func paperLikeBackgroundRatio(in cgImage: CGImage) -> Double {
@@ -250,6 +280,13 @@ enum DocumentLibraryScanner {
         }
 
         return Double(lightPixelCount) / Double(width * height)
+    }
+
+    private static func aspectRatio(of cgImage: CGImage) -> CGFloat {
+        let width = CGFloat(cgImage.width)
+        let height = CGFloat(cgImage.height)
+        guard width > 0, height > 0 else { return 1 }
+        return min(width, height) / max(width, height)
     }
 }
 

@@ -38,15 +38,26 @@ struct DocumentsView: View {
             .navigationSubtitle(navigationSubtitle)
             .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(scanButtonTitle, systemImage: scanButtonSystemImage) {
-                        viewModel.startScan(using: model.assets)
+                if viewModel.hasCompletedInitialScan {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Refresh", systemImage: "arrow.clockwise") {
+                            viewModel.startScan(using: model.assets)
+                        }
+                        .disabled(
+                            viewModel.isScanning ||
+                            model.assets.isEmpty ||
+                            !canScanLibrary ||
+                            !viewModel.hasUnscannedAssets(comparedTo: model.assets)
+                        )
                     }
-                    .disabled(viewModel.isScanning || model.assets.isEmpty || !canScanLibrary)
                 }
             }
             .task {
                 await model.requestAuthorization()
+                viewModel.reconcile(with: model.assets)
+            }
+            .onChange(of: model.assets.map(\.localIdentifier)) { _, _ in
+                viewModel.reconcile(with: model.assets)
             }
             .fullScreenCover(item: $selectedAsset) { selection in
                 ImageDetailView(
@@ -68,8 +79,19 @@ struct DocumentsView: View {
             } description: {
                 Text("Analyzing lightweight thumbnails off the main thread to find document-looking images.")
             } actions: {
-                ProgressView(value: scanProgressValue)
-                    .frame(maxWidth: 220)
+                VStack(spacing: 12) {
+                    ProgressView(value: scanProgressValue) {
+                        Text("First Scan In Progress")
+                    } currentValueLabel: {
+                        Text("\(viewModel.progressCompletedCount) of \(viewModel.progressTotalCount) images")
+                    }
+                    .frame(width: 240)
+
+                    Text("The scan runs in the background and keeps the UI responsive.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
         } else if !viewModel.hasCompletedInitialScan {
             ContentUnavailableView {
@@ -111,12 +133,16 @@ struct DocumentsView: View {
                 }
                 .overlay(alignment: .bottom) {
                     if viewModel.isScanning {
-                        ProgressView(value: scanProgressValue) {
-                            Text("Rescanning Library")
+                        VStack(spacing: 6) {
+                            ProgressView(value: scanProgressValue) {
+                                Text("Refreshing Library")
+                            } currentValueLabel: {
+                                Text("\(viewModel.progressCompletedCount) of \(viewModel.progressTotalCount) images")
+                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(.regularMaterial, in: Capsule())
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                         .padding(.bottom, 10)
                     }
                 }
@@ -130,13 +156,13 @@ struct DocumentsView: View {
 
     private var navigationSubtitle: String {
         if viewModel.isScanning {
-            return "\(viewModel.progressCompletedCount) / \(max(viewModel.progressTotalCount, 1)) scanned"
+            return viewModel.hasCompletedInitialScan ? "Refreshing matches" : "Scanning for matches"
         }
 
         if viewModel.hasCompletedInitialScan {
             let resultCount = documentAssets.count
-            if viewModel.hasLibraryChanges(comparedTo: model.assets) {
-                return "\(resultCount) matches • rescan recommended"
+            if viewModel.hasUnscannedAssets(comparedTo: model.assets) {
+                return "\(resultCount) matches • refresh available"
             }
             return "\(resultCount) matches"
         }
@@ -147,14 +173,6 @@ struct DocumentsView: View {
     private var scanProgressValue: Double {
         guard viewModel.progressTotalCount > 0 else { return 0 }
         return Double(viewModel.progressCompletedCount) / Double(viewModel.progressTotalCount)
-    }
-
-    private var scanButtonTitle: String {
-        viewModel.hasCompletedInitialScan ? "Rescan" : "Scan"
-    }
-
-    private var scanButtonSystemImage: String {
-        viewModel.hasCompletedInitialScan ? "arrow.clockwise" : "text.viewfinder"
     }
 
     @MainActor
