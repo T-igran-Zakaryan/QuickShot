@@ -7,6 +7,7 @@ import Vision
 enum DocumentLibraryScanner {
     private static let scanSize = CGSize(width: 480, height: 480)
     private static let maxConcurrentScans = 2
+    private static var debugRemaining = 20
 
     static func scanDocumentAssetIdentifiers(
         from assetIdentifiers: [String],
@@ -66,42 +67,52 @@ enum DocumentLibraryScanner {
             guard let cgImage = image.normalizedCGImage else { return false }
             let orientation = image.cgImagePropertyOrientation
 
-            if containsHumanFace(in: cgImage, orientation: orientation) {
-                return false
-            }
+            let hasFace = containsHumanFace(in: cgImage, orientation: orientation)
+            let hasHuman = containsHumanFigure(in: cgImage, orientation: orientation)
 
             let textFeatures = recognizeText(in: cgImage, orientation: orientation)
             let rectangleConfidence = detectRectangleConfidence(in: cgImage, orientation: orientation)
             let brightBackgroundRatio = paperLikeBackgroundRatio(in: cgImage)
             let isScreenshot = asset.mediaSubtypes.contains(.photoScreenshot)
-            let isPortraitLike = aspectRatio(of: cgImage) <= 0.82
 
-            let hasTextMass = textFeatures.characterCount >= 8 || textFeatures.observationCount >= 2
-            let denseText = textFeatures.coverage >= 0.03 || textFeatures.characterCount >= 24
-            let paperStyle = brightBackgroundRatio >= 0.33
-            let rectangleWithText = rectangleConfidence >= 0.4 && textFeatures.characterCount >= 6
-            let paperRectangle = paperStyle && rectangleConfidence >= 0.45
-            let paperWithText = paperStyle && hasTextMass
-            let textHeavyPortrait = isPortraitLike && paperStyle && denseText
-            let screenshotWithText = isScreenshot && (hasTextMass || textFeatures.coverage >= 0.025)
+            let hasText = textFeatures.characterCount >= 3 || textFeatures.observationCount >= 1
+            let rectangleLikely = rectangleConfidence >= 0.25
+            let paperStyle = brightBackgroundRatio >= 0.25
+            let textCoverage = textFeatures.coverage >= 0.01
 
-            if screenshotWithText {
-                return true
+            let passes = (isScreenshot && hasText)
+                || (rectangleLikely && hasText)
+                || (paperStyle && hasText)
+                || (hasText && textCoverage)
+
+            if hasFace || hasHuman {
+                debugLogDecision(
+                    assetIdentifier,
+                    hasFace: hasFace,
+                    hasHuman: hasHuman,
+                    rectangleConfidence: rectangleConfidence,
+                    textFeatures: textFeatures,
+                    brightBackgroundRatio: brightBackgroundRatio,
+                    isScreenshot: isScreenshot,
+                    passes: false
+                )
+                return false
             }
 
-            if rectangleWithText {
-                return true
+            if !passes {
+                debugLogDecision(
+                    assetIdentifier,
+                    hasFace: hasFace,
+                    hasHuman: hasHuman,
+                    rectangleConfidence: rectangleConfidence,
+                    textFeatures: textFeatures,
+                    brightBackgroundRatio: brightBackgroundRatio,
+                    isScreenshot: isScreenshot,
+                    passes: false
+                )
             }
 
-            if paperRectangle {
-                return true
-            }
-
-            if paperWithText {
-                return true
-            }
-
-            return textHeavyPortrait
+            return passes
         }
     }
 
@@ -110,23 +121,42 @@ enum DocumentLibraryScanner {
         return result.firstObject
     }
 
+    private static func debugLogDecision(
+        _ assetIdentifier: String,
+        hasFace: Bool,
+        hasHuman: Bool,
+        rectangleConfidence: Float,
+        textFeatures: RecognizedTextFeatures,
+        brightBackgroundRatio: Double,
+        isScreenshot: Bool,
+        passes: Bool
+    ) {
+        guard debugRemaining > 0 else { return }
+        debugRemaining -= 1
+        let shortId = String(assetIdentifier.prefix(8))
+        let rectString = String(format: "%.2f", rectangleConfidence)
+        let coverageString = String(format: "%.3f", textFeatures.coverage)
+        let paperString = String(format: "%.2f", brightBackgroundRatio)
+        print(
+            "DocScan[\(shortId)] pass=\(passes) face=\(hasFace) human=\(hasHuman) rect=\(rectString) textCount=\(textFeatures.characterCount) obs=\(textFeatures.observationCount) coverage=\(coverageString) paper=\(paperString) screenshot=\(isScreenshot)"
+        )
+    }
+
     private static func thumbnail(for asset: PHAsset, targetSize: CGSize) async -> UIImage? {
         await withCheckedContinuation { continuation in
             let options = PHImageRequestOptions()
             options.deliveryMode = .fastFormat
             options.resizeMode = .fast
-            options.isNetworkAccessAllowed = false
+            options.isNetworkAccessAllowed = true
             options.isSynchronous = false
             options.version = .current
 
             var didResume = false
 
-            PHImageManager.default().requestImage(
+            PHImageManager.default().requestImageDataAndOrientation(
                 for: asset,
-                targetSize: targetSize,
-                contentMode: .aspectFit,
                 options: options
-            ) { image, info in
+            ) { data, _, _, info in
                 if didResume {
                     return
                 }
@@ -143,8 +173,9 @@ enum DocumentLibraryScanner {
                     return
                 }
 
-                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-                if isDegraded {
+                guard let data, let image = UIImage(data: data) else {
+                    didResume = true
+                    continuation.resume(returning: nil)
                     return
                 }
 
@@ -162,7 +193,7 @@ enum DocumentLibraryScanner {
         request.recognitionLevel = .fast
         request.usesLanguageCorrection = false
         request.automaticallyDetectsLanguage = false
-        request.minimumTextHeight = 0.012
+        request.minimumTextHeight = 0.008
 
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation)
 
@@ -201,10 +232,10 @@ enum DocumentLibraryScanner {
     ) -> Float {
         let request = VNDetectRectanglesRequest()
         request.maximumObservations = 1
-        request.minimumConfidence = 0.35
+        request.minimumConfidence = 0.2
         request.minimumAspectRatio = 0.35
         request.maximumAspectRatio = 1.0
-        request.minimumSize = 0.2
+        request.minimumSize = 0.12
         request.quadratureTolerance = 30
 
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation)
@@ -233,6 +264,26 @@ enum DocumentLibraryScanner {
         }
 
         return !(request.results ?? []).isEmpty
+    }
+
+    private static func containsHumanFigure(
+        in cgImage: CGImage,
+        orientation: CGImagePropertyOrientation
+    ) -> Bool {
+        let request = VNDetectHumanRectanglesRequest()
+
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation)
+
+        do {
+            try handler.perform([request])
+        } catch {
+            return false
+        }
+
+        return (request.results ?? []).contains {
+            let area = $0.boundingBox.width * $0.boundingBox.height
+            return $0.confidence >= 0.7 && area >= 0.08
+        }
     }
 
     private static func paperLikeBackgroundRatio(in cgImage: CGImage) -> Double {

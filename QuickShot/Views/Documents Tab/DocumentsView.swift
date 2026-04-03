@@ -106,11 +106,35 @@ struct DocumentsView: View {
                 .disabled(model.assets.isEmpty)
             }
         } else if documentAssets.isEmpty {
-            ContentUnavailableView(
-                "No Document-Looking Images",
-                systemImage: "doc.text.magnifyingglass",
-                description: Text("Try rescanning after library changes. Results favor paper-style images with text and can also include screenshots.")
-            )
+            ContentUnavailableView {
+                Label("No Document-Looking Images", systemImage: "doc.text.magnifyingglass")
+            } description: {
+                Text("Try rescanning after library changes. Results favor paper-style images with text and can also include screenshots.")
+            } actions: {
+                Menu {
+                    Button("Scan New Only") {
+                        viewModel.startScan(using: model.assets)
+                    }
+                    .disabled(
+                        viewModel.isScanning ||
+                        model.assets.isEmpty ||
+                        !canScanLibrary ||
+                        !viewModel.hasUnscannedAssets(comparedTo: model.assets)
+                    )
+
+                    Button("Rescan All") {
+                        viewModel.startFullScan(using: model.assets)
+                    }
+                    .disabled(
+                        viewModel.isScanning ||
+                        model.assets.isEmpty ||
+                        !canScanLibrary
+                    )
+                } label: {
+                    Label("Scan Library", systemImage: "doc.text.viewfinder")
+                }
+                .buttonStyle(.glassProminent)
+            }
         } else {
             GeometryReader { proxy in
                 let cellSide = (proxy.size.width / 4).rounded(.down)

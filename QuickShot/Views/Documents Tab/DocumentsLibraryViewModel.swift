@@ -103,6 +103,15 @@ final class DocumentsLibraryViewModel {
         }
     }
 
+    func startFullScan(using assets: [PHAsset]) {
+        scanTask?.cancel()
+        matchedAssetIdentifiers.removeAll()
+        lastScannedAssetIdentifiers.removeAll()
+        hasCompletedInitialScan = false
+        persistState()
+        startScan(using: assets)
+    }
+
     private func unscannedAssetIdentifiers(from assets: [PHAsset]) -> [String] {
         assets
             .map(\.localIdentifier)

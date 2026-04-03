@@ -44,13 +44,39 @@ struct AssetThumbnailView: View {
             options: nil
          )
 
+         let fastOptions = PHImageRequestOptions()
+         fastOptions.deliveryMode = .fastFormat
+         fastOptions.resizeMode = .fast
+         fastOptions.isNetworkAccessAllowed = true
+
          imageManager.requestImage(
             for: asset,
             targetSize: targetSize,
             contentMode: .aspectFill,
-            options: nil
+            options: fastOptions
          ) { image, _ in
-            self.image = image
+            DispatchQueue.main.async {
+               self.image = image
+            }
+         }
+
+         let highQualityOptions = PHImageRequestOptions()
+         highQualityOptions.deliveryMode = .highQualityFormat
+         highQualityOptions.resizeMode = .fast
+         highQualityOptions.isNetworkAccessAllowed = true
+
+         imageManager.requestImage(
+            for: asset,
+            targetSize: targetSize,
+            contentMode: .aspectFill,
+            options: highQualityOptions
+         ) { image, info in
+            let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+            guard !isDegraded else { return }
+
+            DispatchQueue.main.async {
+               self.image = image
+            }
          }
       }
       .onDisappear {
