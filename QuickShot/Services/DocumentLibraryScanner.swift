@@ -75,14 +75,15 @@ enum DocumentLibraryScanner {
             let brightBackgroundRatio = paperLikeBackgroundRatio(in: cgImage)
             let isScreenshot = asset.mediaSubtypes.contains(.photoScreenshot)
 
-            let hasText = textFeatures.characterCount >= 3 || textFeatures.observationCount >= 1
+            let hasText = textFeatures.characterCount >= 6 || textFeatures.observationCount >= 2
             let rectangleLikely = rectangleConfidence >= 0.25
             let paperStyle = brightBackgroundRatio >= 0.25
-            let textCoverage = textFeatures.coverage >= 0.01
+            let textCoverage = textFeatures.coverage >= 0.015
+            let textDensity = textFeatures.characterCount >= 10 || textFeatures.coverage >= 0.02
 
             let passes = (isScreenshot && hasText)
                 || (rectangleLikely && hasText)
-                || (paperStyle && hasText)
+                || (paperStyle && textDensity)
                 || (hasText && textCoverage)
 
             if hasFace || hasHuman {
