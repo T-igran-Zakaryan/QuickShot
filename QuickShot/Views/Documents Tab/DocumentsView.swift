@@ -3,9 +3,18 @@ import Photos
 
 struct DocumentsView: View {
     @Environment(\.displayScale) private var displayScale
+    @AppStorage("useSelectionOrder") private var useSelectionOrder = false
     @State private var model = PhotoLibraryModel()
     @State private var viewModel = DocumentsLibraryViewModel()
+    @State private var pdfService = PDFLibraryService()
     @State private var selectedAsset: SelectedAsset?
+    @State private var selectedAssetIDs: Set<String> = []
+    @State private var selectedAssetOrder: [String] = []
+    @State private var isSelectionMode = false
+    @State private var isConverting = false
+    @State private var isShowingConversionSheet = false
+    @State private var conversionPageSize: PDFPageSizeOption = .a4
+    @State private var compressionQuality: Double = 0.8
     @State private var isZoomedInFullScreen = false
     @State private var imageHeight: CGFloat = 80
     @Namespace private var namespace
@@ -14,6 +23,10 @@ struct DocumentsView: View {
 
     private var documentAssets: [PHAsset] {
         viewModel.displayedAssets(from: model.assets)
+    }
+
+    private var shouldShowConvertButton: Bool {
+        isSelectionMode
     }
 
     var body: some View {
@@ -38,6 +51,15 @@ struct DocumentsView: View {
             .navigationSubtitle(navigationSubtitle)
             .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        toggleSelectionMode()
+                    } label: {
+                        Image(systemName: isSelectionMode ? "checkmark.circle" : "circle.grid.2x2.topleft.checkmark.filled")
+                    }
+                    .disabled(documentAssets.isEmpty)
+                }
+
                 if viewModel.hasCompletedInitialScan {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Refresh", systemImage: "arrow.clockwise") {
@@ -50,6 +72,31 @@ struct DocumentsView: View {
                             !viewModel.hasUnscannedAssets(comparedTo: model.assets)
                         )
                     }
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if shouldShowConvertButton {
+                    Button {
+                        isShowingConversionSheet = true
+                    } label: {
+                        Label("Convert to PDF", systemImage: "doc.badge.plus")
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(selectedAssetIDs.isEmpty || isConverting)
+                    .padding(.horizontal)
+                    .padding(.bottom, 6)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: shouldShowConvertButton)
+            .sheet(isPresented: $isShowingConversionSheet) {
+                ConversionSettingsView(
+                    pageSize: $conversionPageSize,
+                    compressionQuality: $compressionQuality,
+                    useSelectionOrder: $useSelectionOrder,
+                    isConverting: $isConverting
+                ) {
+                    await convertSelectedAssets()
                 }
             }
             .task {
@@ -149,10 +196,18 @@ struct DocumentsView: View {
                         namespace: namespace,
                         gridItemCount: gridItemCount,
                         onTap: handleTap(on:),
-                        onLongPress: nil,
+                        onLongPress: handleLongPress(on:),
                         imageHeight: $imageHeight
-                    ) { _ in
-                        EmptyView()
+                    ) { asset in
+                        ZStack(alignment: .topTrailing) {
+                            Rectangle()
+                                .fill(Color.black.opacity(isSelectionMode ? 0.25 : 0))
+
+                            if isSelectionMode {
+                                selectionBadge(isSelected: selectedAssetIDs.contains(asset.localIdentifier))
+                            }
+                        }
+                        .animation(.default, value: isSelectionMode)
                     }
                 }
                 .overlay(alignment: .bottom) {
@@ -201,6 +256,80 @@ struct DocumentsView: View {
 
     @MainActor
     private func handleTap(on asset: PHAsset) {
-        selectedAsset = SelectedAsset(asset: asset)
+        if isSelectionMode {
+            toggleSelection(for: asset)
+        } else {
+            selectedAsset = SelectedAsset(asset: asset)
+        }
+    }
+
+    @MainActor
+    private func handleLongPress(on asset: PHAsset) {
+        if !isSelectionMode {
+            isSelectionMode = true
+        }
+
+        toggleSelection(for: asset)
+    }
+
+    @MainActor
+    private func toggleSelectionMode() {
+        isSelectionMode.toggle()
+        if !isSelectionMode {
+            selectedAssetIDs.removeAll()
+            selectedAssetOrder.removeAll()
+        }
+    }
+
+    @MainActor
+    private func toggleSelection(for asset: PHAsset) {
+        let id = asset.localIdentifier
+        if selectedAssetIDs.contains(id) {
+            selectedAssetIDs.remove(id)
+            if let index = selectedAssetOrder.firstIndex(of: id) {
+                selectedAssetOrder.remove(at: index)
+            }
+        } else {
+            selectedAssetIDs.insert(id)
+            selectedAssetOrder.append(id)
+        }
+    }
+
+    @MainActor
+    private func convertSelectedAssets() async {
+        guard !isConverting else { return }
+
+        isConverting = true
+        let selectedAssets: [PHAsset]
+        if useSelectionOrder {
+            selectedAssets = selectedAssetOrder.compactMap { id in
+                model.assets.first { $0.localIdentifier == id }
+            }
+        } else {
+            selectedAssets = model.assets.filter { selectedAssetIDs.contains($0.localIdentifier) }
+        }
+
+        let settings = PDFConversionSettings(
+            pageSize: conversionPageSize,
+            compressionQuality: CGFloat(compressionQuality)
+        )
+
+        if let data = await model.pdfData(from: selectedAssets, settings: settings) {
+            _ = pdfService.savePDF(data: data)
+        }
+
+        isConverting = false
+        selectedAssetIDs.removeAll()
+        selectedAssetOrder.removeAll()
+        isSelectionMode = false
+        isShowingConversionSheet = false
+    }
+
+    @ViewBuilder
+    private func selectionBadge(isSelected: Bool) -> some View {
+        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+            .font(.title3)
+            .foregroundColor(isSelected ? .blue : .white)
+            .padding(6)
     }
 }
