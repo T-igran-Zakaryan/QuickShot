@@ -29,7 +29,7 @@ struct QuickShotApp: App {
                     PDFListView()
                 }
 
-                Tab("Settings", systemImage: "gearshape", value: 3) {
+                Tab("Settings", systemImage: "gear", value: 3) {
                     SettingsView()
                 }
             }
