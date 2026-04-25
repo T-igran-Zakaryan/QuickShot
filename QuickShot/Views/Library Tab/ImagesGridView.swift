@@ -104,7 +104,7 @@ struct ImagesGridView: View {
                await convertSelectedAssets()
             }
          }
-         .navigationTitle("Photos")
+         .navigationTitle("Images")
          .navigationSubtitle("\(model.assets.count) - elements")
          .toolbarTitleDisplayMode(.inlineLarge)
          .overlay(alignment: .bottom) {

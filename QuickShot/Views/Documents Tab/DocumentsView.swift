@@ -51,28 +51,53 @@ struct DocumentsView: View {
             .navigationSubtitle(navigationSubtitle)
             .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
+               
+               Group {
+                  if viewModel.hasCompletedInitialScan {
+                  ToolbarItem(placement: .topBarTrailing) {
+                     Button {
                         toggleSelectionMode()
-                    } label: {
+                     } label: {
                         Image(systemName: isSelectionMode ? "checkmark.circle" : "circle.grid.2x2.topleft.checkmark.filled")
-                    }
-                    .disabled(documentAssets.isEmpty)
-                }
-
-                if viewModel.hasCompletedInitialScan {
-                    ToolbarItem(placement: .topBarTrailing) {
+                     }
+                     .disabled(documentAssets.isEmpty)
+                  }
+                  
+                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Refresh", systemImage: "arrow.clockwise") {
-                            viewModel.startScan(using: model.assets)
+                           viewModel.startScan(using: model.assets)
                         }
                         .disabled(
-                            viewModel.isScanning ||
-                            model.assets.isEmpty ||
-                            !canScanLibrary ||
-                            !viewModel.hasUnscannedAssets(comparedTo: model.assets)
+                           viewModel.isScanning ||
+                           model.assets.isEmpty ||
+                           !canScanLibrary ||
+                           !viewModel.hasUnscannedAssets(comparedTo: model.assets)
                         )
-                    }
-                }
+                     }
+                  }
+               }
+//                ToolbarItem(placement: .topBarTrailing) {
+//                    Button {
+//                        toggleSelectionMode()
+//                    } label: {
+//                        Image(systemName: isSelectionMode ? "checkmark.circle" : "circle.grid.2x2.topleft.checkmark.filled")
+//                    }
+//                    .disabled(documentAssets.isEmpty)
+//                }
+//
+//                if viewModel.hasCompletedInitialScan {
+//                    ToolbarItem(placement: .topBarTrailing) {
+//                        Button("Refresh", systemImage: "arrow.clockwise") {
+//                            viewModel.startScan(using: model.assets)
+//                        }
+//                        .disabled(
+//                            viewModel.isScanning ||
+//                            model.assets.isEmpty ||
+//                            !canScanLibrary ||
+//                            !viewModel.hasUnscannedAssets(comparedTo: model.assets)
+//                        )
+//                    }
+//                }
             }
             .overlay(alignment: .bottom) {
                 if shouldShowConvertButton {
