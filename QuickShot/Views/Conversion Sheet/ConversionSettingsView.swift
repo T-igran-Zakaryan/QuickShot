@@ -43,10 +43,12 @@ struct ConversionSettingsView: View {
             }
 
             Section("Page order") {
-               Toggle("Use Selection Order", isOn: $useSelectionOrder)
-               Text(useSelectionOrder ? "Pages will follow the order you tapped the photos." : "Pages will follow the photo library order.")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+               Toggle(isOn: $useSelectionOrder) {
+                  Text("Use Selection Order")
+                  Text(useSelectionOrder ? "Pages will follow the order you tapped the photos." : "Pages will follow the photo library order.")
+                     .font(.caption)
+               }
+               
             }
  /// MARK:  This should be fixed
             if isConverting {

@@ -138,9 +138,9 @@ enum DocumentLibraryScanner {
         let rectString = String(format: "%.2f", rectangleConfidence)
         let coverageString = String(format: "%.3f", textFeatures.coverage)
         let paperString = String(format: "%.2f", brightBackgroundRatio)
-        print(
-            "DocScan[\(shortId)] pass=\(passes) face=\(hasFace) human=\(hasHuman) rect=\(rectString) textCount=\(textFeatures.characterCount) obs=\(textFeatures.observationCount) coverage=\(coverageString) paper=\(paperString) screenshot=\(isScreenshot)"
-        )
+//        print(
+//            "DocScan[\(shortId)] pass=\(passes) face=\(hasFace) human=\(hasHuman) rect=\(rectString) textCount=\(textFeatures.characterCount) obs=\(textFeatures.observationCount) coverage=\(coverageString) paper=\(paperString) screenshot=\(isScreenshot)"
+//        )
     }
 
     private static func thumbnail(for asset: PHAsset, targetSize: CGSize) async -> UIImage? {

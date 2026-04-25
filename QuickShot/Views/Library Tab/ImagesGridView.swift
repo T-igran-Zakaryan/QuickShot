@@ -23,7 +23,7 @@ struct ImagesGridView: View {
    @State private var isConverting = false
    @State private var isShowingConversionSheet = false
    @State private var conversionPageSize: PDFPageSizeOption = .a4
-   @State private var compressionQuality: Double = 0.8
+   @State private var compressionQuality: Double = 0.7
    @State private var didScrollToBottom = false
    @State private var isZoomedInFullScreen = false
    private let gridBottomAnchorID = "grid-bottom-anchor"

@@ -14,7 +14,7 @@ struct DocumentsView: View {
     @State private var isConverting = false
     @State private var isShowingConversionSheet = false
     @State private var conversionPageSize: PDFPageSizeOption = .a4
-    @State private var compressionQuality: Double = 0.8
+    @State private var compressionQuality: Double = 0.7
     @State private var isZoomedInFullScreen = false
     @State private var imageHeight: CGFloat = 80
     @Namespace private var namespace
