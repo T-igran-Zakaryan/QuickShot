@@ -51,7 +51,7 @@ struct SettingsView: View {
                   openFeedbackEmail()
                } label: {
                   HStack {
-                     Text("Feedback")
+                     Text("Help and Feedback")
                      Spacer()
                      Image(systemName: "arrow.up.right")
                         .foregroundStyle(.secondary)

@@ -16,10 +16,10 @@ struct DocumentsView: View {
     @State private var conversionPageSize: PDFPageSizeOption = .a4
     @State private var compressionQuality: Double = 0.7
     @State private var isZoomedInFullScreen = false
-    @State private var imageHeight: CGFloat = 80
+    @State private var imageHeight: CGFloat = 120
     @Namespace private var namespace
 
-    private let gridItemCount = 5
+    private let gridItemCount = 3
 
     private var documentAssets: [PHAsset] {
         viewModel.displayedAssets(from: model.assets)

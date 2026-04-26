@@ -31,8 +31,10 @@ struct ImagesGridView: View {
    private var shouldShowConvertButton: Bool {
       isSelectionMode
    }
-   @State private var gridItemCount = 5
-   @State var imageHeight: CGFloat = 80
+   @State private var gridItemCount = 3
+   @State var imageHeight: CGFloat = 120
+   
+   // 5 items = 80 height
    
    var body: some View {
       NavigationStack {
