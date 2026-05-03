@@ -11,6 +11,7 @@ import SwiftUI
 struct QuickShotApp: App {
     @State private var selectedTab = 1
     @AppStorage("showsDocumentsTab") private var showsDocumentsTab = false
+    @AppStorage("appTheme") private var appThemeRawValue = AppTheme.system.rawValue
 
     var body: some Scene {
         WindowGroup {
@@ -33,6 +34,12 @@ struct QuickShotApp: App {
                     SettingsView()
                 }
             }
+            .preferredColorScheme(selectedTheme.colorScheme)
+            .animation(.easeInOut(duration: 0.25), value: selectedTheme)
         }
+    }
+
+    private var selectedTheme: AppTheme {
+        AppTheme(rawValue: appThemeRawValue) ?? .system
     }
 }

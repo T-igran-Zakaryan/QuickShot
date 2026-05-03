@@ -134,10 +134,10 @@ enum DocumentLibraryScanner {
     ) {
         guard debugRemaining > 0 else { return }
         debugRemaining -= 1
-        let shortId = String(assetIdentifier.prefix(8))
-        let rectString = String(format: "%.2f", rectangleConfidence)
-        let coverageString = String(format: "%.3f", textFeatures.coverage)
-        let paperString = String(format: "%.2f", brightBackgroundRatio)
+//        let shortId = String(assetIdentifier.prefix(8))
+//        let rectString = String(format: "%.2f", rectangleConfidence)
+//        let coverageString = String(format: "%.3f", textFeatures.coverage)
+//        let paperString = String(format: "%.2f", brightBackgroundRatio)
 //        print(
 //            "DocScan[\(shortId)] pass=\(passes) face=\(hasFace) human=\(hasHuman) rect=\(rectString) textCount=\(textFeatures.characterCount) obs=\(textFeatures.observationCount) coverage=\(coverageString) paper=\(paperString) screenshot=\(isScreenshot)"
 //        )
