@@ -3,6 +3,8 @@ import UIKit
 import UniformTypeIdentifiers
 
 final class ActionViewController: UIViewController {
+    @IBOutlet private weak var imageView: UIImageView?
+
     private let converter = ActionPDFConverter()
 
     private var sourceImages: [UIImage] = []
@@ -24,6 +26,10 @@ final class ActionViewController: UIViewController {
         Task {
             await loadInputImages()
         }
+    }
+
+    @IBAction private func done() {
+        cancelExtension()
     }
 
     private func embedRootView() {

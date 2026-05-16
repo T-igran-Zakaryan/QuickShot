@@ -55,6 +55,22 @@ struct ImageDetailView: View {
                .opacity(isZoomed || !showButtons ? 0 : 1)
          }
          .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+               if let image {
+                  ShareLink(item: Image(uiImage: image), preview: SharePreview(filename ?? "Photo", image: Image(uiImage: image))) {
+                     Image(systemName: "square.and.arrow.up")
+                  }
+                  .accessibilityLabel("Share image")
+               } else {
+                  // Disabled placeholder while image loads
+                  Image(systemName: "square.and.arrow.up")
+                     .foregroundStyle(.secondary)
+                     .opacity(0.5)
+                     .accessibilityHidden(true)
+               }
+            }
+            
+            
             ToolbarItem(placement: .bottomBar) {
                Spacer()
             }
@@ -183,3 +199,4 @@ struct ImageDetailView: View {
 
    // Background opacity/dismiss offsets removed with fullscreen gestures.
 }
+
