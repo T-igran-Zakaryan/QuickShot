@@ -188,8 +188,6 @@ extension ActionViewController: UIDocumentPickerDelegate {
 }
 
 private struct ActionRootView: View {
-    let pageSize: PDFPageSizeOption
-    let compressionQuality: Double
     let isConverting: Bool
     let statusMessage: String?
     let onPageSizeChange: (PDFPageSizeOption) -> Void
@@ -197,13 +195,39 @@ private struct ActionRootView: View {
     let onConvert: () -> Void
     let onCancel: () -> Void
 
+    @State private var pageSize: PDFPageSizeOption
+    @State private var compressionQuality: Double
+
+    init(
+        pageSize: PDFPageSizeOption,
+        compressionQuality: Double,
+        isConverting: Bool,
+        statusMessage: String?,
+        onPageSizeChange: @escaping (PDFPageSizeOption) -> Void,
+        onQualityChange: @escaping (Double) -> Void,
+        onConvert: @escaping () -> Void,
+        onCancel: @escaping () -> Void
+    ) {
+        _pageSize = State(initialValue: pageSize)
+        _compressionQuality = State(initialValue: compressionQuality)
+        self.isConverting = isConverting
+        self.statusMessage = statusMessage
+        self.onPageSizeChange = onPageSizeChange
+        self.onQualityChange = onQualityChange
+        self.onConvert = onConvert
+        self.onCancel = onCancel
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section("Size settings") {
                     Picker("Page size", selection: Binding(
                         get: { pageSize },
-                        set: { onPageSizeChange($0) }
+                        set: {
+                            pageSize = $0
+                            onPageSizeChange($0)
+                        }
                     )) {
                         Text("A4").tag(PDFPageSizeOption.a4)
                         Text("Keep image size").tag(PDFPageSizeOption.keepOriginal)
@@ -216,7 +240,10 @@ private struct ActionRootView: View {
                     Slider(
                         value: Binding(
                             get: { compressionQuality },
-                            set: { onQualityChange($0) }
+                            set: {
+                                compressionQuality = $0
+                                onQualityChange($0)
+                            }
                         ),
                         in: 0.4...1.0,
                         step: 0.05
